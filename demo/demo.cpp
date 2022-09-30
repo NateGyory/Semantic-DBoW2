@@ -17,50 +17,42 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/features2d.hpp>
 
-
 using namespace DBoW2;
 using namespace std;
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-void loadFeatures(vector<vector<cv::Mat > > &features);
+void loadFeatures(vector<vector<std::tuple<cv::Mat, int, int>>> &features);
 void changeStructure(const cv::Mat &plain, vector<cv::Mat> &out);
-void testVocCreation(const vector<vector<cv::Mat > > &features);
-void testDatabase(const vector<vector<cv::Mat > > &features);
+void testDatabase(const vector<vector<std::tuple<cv::Mat, int, int>>> &features, SemanticOrbVocabulary &voc);
 
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 // number of training images
 const int NIMAGES = 4;
 
-// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
-void wait()
-{
-  cout << endl << "Press enter to continue" << endl;
-  getchar();
-}
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 // ----------------------------------------------------------------------------
 
 int main()
 {
-  vector<vector<cv::Mat > > features;
+  vector<vector<std::tuple<cv::Mat, int, int>>> features;
   loadFeatures(features);
 
-  testVocCreation(features);
+  // Load the vocabulary from vocab text file
+  SemanticOrbVocabulary voc;
+  voc.loadFromTextFile("/home/nate/Development/Semantic-DBoW2/vocabulary/ORBvoc.txt");
 
-  wait();
-
-  testDatabase(features);
+  testDatabase(features, voc);
 
   return 0;
 }
 
 // ----------------------------------------------------------------------------
 
-void loadFeatures(vector<vector<cv::Mat > > &features)
+void loadFeatures(vector<vector<std::tuple<cv::Mat,int,int>>> &features)
 {
   features.clear();
   features.reserve(NIMAGES);
@@ -71,7 +63,7 @@ void loadFeatures(vector<vector<cv::Mat > > &features)
   for(int i = 0; i < NIMAGES; ++i)
   {
     stringstream ss;
-    ss << "images/image" << i << ".png";
+    ss << "/home/nate/Development/Semantic-DBoW2/demo/images/image" << i << ".png";
 
     cv::Mat image = cv::imread(ss.str(), 0);
     cv::Mat mask;
@@ -80,20 +72,14 @@ void loadFeatures(vector<vector<cv::Mat > > &features)
 
     orb->detectAndCompute(image, mask, keypoints, descriptors);
 
-    features.push_back(vector<cv::Mat >());
-    changeStructure(descriptors, features.back());
-  }
-}
+    std::vector<std::tuple<cv::Mat,int,int>> imgDescriptors;
 
-// ----------------------------------------------------------------------------
+    for( int j = 0; j < descriptors.rows; j++ )
+    {
+        imgDescriptors.emplace_back(std::make_tuple(descriptors.row(j), -1, -1));
+    }
 
-void changeStructure(const cv::Mat &plain, vector<cv::Mat> &out)
-{
-  out.resize(plain.rows);
-
-  for(int i = 0; i < plain.rows; ++i)
-  {
-    out[i] = plain.row(i);
+    features[i] = imgDescriptors;
   }
 }
 
@@ -101,7 +87,7 @@ void changeStructure(const cv::Mat &plain, vector<cv::Mat> &out)
 
 void testVocCreation(const vector<vector<cv::Mat > > &features)
 {
-  // branching factor and depth levels 
+  // branching factor and depth levels
   const int k = 9;
   const int L = 3;
   const WeightingType weight = TF_IDF;
@@ -125,7 +111,7 @@ void testVocCreation(const vector<vector<cv::Mat > > &features)
     for(int j = 0; j < NIMAGES; j++)
     {
       voc.transform(features[j], v2);
-      
+
       double score = voc.score(v1, v2);
       cout << "Image " << i << " vs Image " << j << ": " << score << endl;
     }
@@ -139,20 +125,17 @@ void testVocCreation(const vector<vector<cv::Mat > > &features)
 
 // ----------------------------------------------------------------------------
 
-void testDatabase(const vector<vector<cv::Mat > > &features)
+void testDatabase(const std::vector<std::vector<std::tuple<cv::Mat, int, int>>> &features, SemanticOrbVocabulary &voc)
 {
   cout << "Creating a small database..." << endl;
 
-  // load the vocabulary from disk
-  OrbVocabulary voc("small_voc.yml.gz");
-  
-  OrbDatabase db(voc, false, 0); // false = do not use direct index
+  SemanticOrbDatabase db(voc, false, 0); // false = do not use direct index
   // (so ignore the last param)
-  // The direct index is useful if we want to retrieve the features that 
+  // The direct index is useful if we want to retrieve the features that
   // belong to some vocabulary node.
   // db creates a copy of the vocabulary, we may get rid of "voc" now
 
-  // add images to the database
+  // TODO Nate: add semantic ORB features to the database
   for(int i = 0; i < NIMAGES; i++)
   {
     db.add(features[i]);
@@ -170,24 +153,13 @@ void testDatabase(const vector<vector<cv::Mat > > &features)
   {
     db.query(features[i], ret, 4);
 
-    // ret[0] is always the same image in this case, because we added it to the 
+    // ret[0] is always the same image in this case, because we added it to the
     // database. ret[1] is the second best match.
 
     cout << "Searching for Image " << i << ". " << ret << endl;
   }
 
   cout << endl;
-
-  // we can save the database. The created file includes the vocabulary
-  // and the entries added
-  cout << "Saving database..." << endl;
-  db.save("small_db.yml.gz");
-  cout << "... done!" << endl;
-  
-  // once saved, we can load it again  
-  cout << "Retrieving database once again..." << endl;
-  OrbDatabase db2("small_db.yml.gz");
-  cout << "... done! This is: " << endl << db2 << endl;
 }
 
 // ----------------------------------------------------------------------------

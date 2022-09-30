@@ -1,39 +1,42 @@
 /**
- * File: FClass.h
- * Date: November 2011
- * Author: Dorian Galvez-Lopez
- * Description: generic FClass to instantiate templated classes
+ * File: FSORB.h
+ * Date: September 2022
+ * Author: Nathaniel Gyory
+ * Description: functions for semantic ORB descriptors
  * License: see the LICENSE.txt file
  *
  */
 
-#ifndef __D_T_FCLASS__
-#define __D_T_FCLASS__
+#ifndef __D_T_F_SORB__
+#define __D_T_F_SORB__
 
 #include <opencv2/core.hpp>
 #include <vector>
 #include <string>
 
+#include "FClass.h"
+
 namespace DBoW2 {
 
-/// Generic class to encapsulate functions to manage descriptors.
-/**
- * This class must be inherited. Derived classes can be used as the
- * parameter F when creating Templated structures
- * (TemplatedVocabulary, TemplatedDatabase, ...)
- */
-class FClass
+/// Functions to manipulate BRIEF descriptors
+class FSORB: protected FClass
 {
-  class TDescriptor;
+public:
+
+  /// Descriptor type
+  typedef std::tuple<cv::Mat, int, int> TDescriptor; // <32 bit orb desc, non anchor point semantic class, anchor point semantic class>
+  /// Pointer to a single descriptor
   typedef const TDescriptor *pDescriptor;
+  /// Descriptor length (in bytes)
+  static const int L = 32;
 
   /**
    * Calculates the mean value of a set of descriptors
    * @param descriptors
    * @param mean mean descriptor
    */
-  virtual void meanValue(const std::vector<pDescriptor> &descriptors,
-    TDescriptor &mean) = 0;
+  static void meanValue(const std::vector<pDescriptor> &descriptors,
+    TDescriptor &mean);
 
   /**
    * Calculates the distance between two descriptors
@@ -66,12 +69,28 @@ class FClass
     cv::Mat &mat);
 
   /**
+   * Returns a mat with the descriptors in float format
+   * @param descriptors NxL CV_8U matrix
+   * @param mat (out) NxL 32F matrix
+   */
+  static void toMat32F(const cv::Mat &descriptors, cv::Mat &mat);
+
+  /**
+   * Returns a matrix with the descriptor in OpenCV format
+   * @param descriptors vector of N row descriptors
+   * @param mat (out) NxL CV_8U matrix
+   */
+  static void toMat8U(const std::vector<TDescriptor> &descriptors,
+    cv::Mat &mat);
+
+  /**
    * Returns a bool whether the Descriptor contains semantic informations
    */
-  static bool isSemantic() { return false; }
-};
+  static bool isSemantic();
 
+};
 
 } // namespace DBoW2
 
 #endif
+

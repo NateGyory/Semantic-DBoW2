@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.0)
 project(DBoW2)
 include(ExternalProject)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 option(BUILD_DBoW2   "Build DBoW2"            ON)
 option(BUILD_Demo    "Build demo application" ON)
 
@@ -19,11 +21,11 @@ endif()
 
 set(HDRS
   include/DBoW2/BowVector.h           include/DBoW2/FBrief.h
-  include/DBoW2/QueryResults.h        include/DBoW2/TemplatedDatabase.h   include/DBoW2/FORB.h
+  include/DBoW2/QueryResults.h        include/DBoW2/TemplatedDatabase.h   include/DBoW2/FORB.h           include/DBoW2/FSORB.h
   include/DBoW2/DBoW2.h               include/DBoW2/FClass.h              include/DBoW2/FeatureVector.h
   include/DBoW2/ScoringObject.h       include/DBoW2/TemplatedVocabulary.h)
-set(SRCS 
-  src/BowVector.cpp     src/FBrief.cpp        src/FORB.cpp
+set(SRCS
+  src/BowVector.cpp     src/FBrief.cpp        src/FORB.cpp      src/FSORB.cpp
   src/FeatureVector.cpp src/QueryResults.cpp  src/ScoringObject.cpp)
 
 set(DEPENDENCY_DIR ${CMAKE_CURRENT_BINARY_DIR}/dependencies)
@@ -59,7 +61,7 @@ if(BUILD_DBoW2)
 endif()
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/DBoW2Config.cmake"
   DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME})
-install(FILES "${PROJECT_BINARY_DIR}/DBoW2Config.cmake" 
+install(FILES "${PROJECT_BINARY_DIR}/DBoW2Config.cmake"
   DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/DBoW2/)
 install(DIRECTORY ${DEPENDENCY_INSTALL_DIR}/ DESTINATION ${CMAKE_INSTALL_PREFIX} OPTIONAL)
 
