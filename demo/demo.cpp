@@ -22,9 +22,9 @@ using namespace std;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-void loadFeatures(vector<vector<std::tuple<cv::Mat, int, int>>> &features);
+void loadFeatures(vector<vector<std::pair<cv::Mat, int>>> &features);
 void changeStructure(const cv::Mat &plain, vector<cv::Mat> &out);
-void testDatabase(const vector<vector<std::tuple<cv::Mat, int, int>>> &features, SemanticOrbVocabulary &voc);
+void testDatabase(const vector<vector<std::pair<cv::Mat, int>>> &features, SemanticOrbVocabulary &voc);
 
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -38,7 +38,7 @@ const int NIMAGES = 4;
 
 int main()
 {
-  vector<vector<std::tuple<cv::Mat, int, int>>> features;
+  vector<vector<std::pair<cv::Mat, int>>> features;
   loadFeatures(features);
 
   // Load the vocabulary from vocab text file
@@ -52,7 +52,7 @@ int main()
 
 // ----------------------------------------------------------------------------
 
-void loadFeatures(vector<vector<std::tuple<cv::Mat,int,int>>> &features)
+void loadFeatures(vector<vector<std::pair<cv::Mat,int>>> &features)
 {
   features.clear();
   features.reserve(NIMAGES);
@@ -72,11 +72,11 @@ void loadFeatures(vector<vector<std::tuple<cv::Mat,int,int>>> &features)
 
     orb->detectAndCompute(image, mask, keypoints, descriptors);
 
-    std::vector<std::tuple<cv::Mat,int,int>> imgDescriptors;
+    std::vector<std::pair<cv::Mat,int>> imgDescriptors;
 
     for( int j = 0; j < descriptors.rows; j++ )
     {
-        imgDescriptors.emplace_back(std::make_tuple(descriptors.row(j), -1, -1));
+        imgDescriptors.emplace_back(std::make_pair(descriptors.row(j), -1));
     }
 
     features[i] = imgDescriptors;
@@ -125,11 +125,12 @@ void testVocCreation(const vector<vector<cv::Mat > > &features)
 
 // ----------------------------------------------------------------------------
 
-void testDatabase(const std::vector<std::vector<std::tuple<cv::Mat, int, int>>> &features, SemanticOrbVocabulary &voc)
+void testDatabase(const std::vector<std::vector<std::pair<cv::Mat, int>>> &features, SemanticOrbVocabulary &voc)
 {
   cout << "Creating a small database..." << endl;
 
-  SemanticOrbDatabase db(voc, false, 0); // false = do not use direct index
+  std::string classFile = "/home/nate/Development/Semantic-DBoW2/demo/config/labels_test.json";
+  SemanticOrbDatabase db(voc, classFile, false, 0); // false = do not use direct index
   // (so ignore the last param)
   // The direct index is useful if we want to retrieve the features that
   // belong to some vocabulary node.

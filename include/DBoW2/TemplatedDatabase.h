@@ -23,6 +23,10 @@
 #include "BowVector.h"
 #include "FeatureVector.h"
 
+#include "nlohmann/json.hpp"
+
+using json = nlohmann::json;
+
 namespace DBoW2 {
 
 // For query functions
@@ -54,6 +58,18 @@ public:
    */
   template<class T>
   explicit TemplatedDatabase(const T &voc, bool use_di = true,
+    int di_levels = 0);
+
+  /**
+   * Creates a database with the given vocabulary
+   * @param T class inherited from TemplatedVocabulary<TDescriptor, F>
+   * @param voc vocabulary
+   * @param use_di a direct index is used to store feature indexes
+   * @param di_levels levels to go up the vocabulary tree to select the
+   *   node id to store in the direct index when adding images
+   */
+  template<class T>
+  explicit TemplatedDatabase(const T &voc, std::string &classFile, bool use_di = false,
     int di_levels = 0);
 
   /**
@@ -111,6 +127,13 @@ public:
    * @return vocabulary
    */
   inline const TemplatedVocabulary<TDescriptor,F>* getVocabulary() const;
+
+  /**
+   * Parses the semantic class file and sets the m_class_map.
+   * @param T class inherited from TemplatedVocabulary<TDescriptor, F>
+   * @param classFile json file holding the class information
+   */
+  inline void parseSemanaticClasses(const std::string &classFile);
 
   /**
    * Allocates some memory for the direct and inverted indexes
@@ -327,6 +350,8 @@ protected:
   /// Number of valid entries in m_dfile
   int m_nentries;
 
+  // Semnatic class map
+  std::unordered_map<int, bool> m_semantic_class_map;
 };
 
 // --------------------------------------------------------------------------
@@ -348,6 +373,14 @@ TemplatedDatabase<TDescriptor, F>::TemplatedDatabase
 {
   setVocabulary(voc);
   clear();
+}
+
+template<class TDescriptor, class F>
+template<class T>
+TemplatedDatabase<TDescriptor, F>::TemplatedDatabase(const T &voc, std::string &classFile, bool use_di, int di_levels) : m_voc(NULL), m_use_di(use_di), m_dilevels(di_levels)
+{
+    setVocabulary(voc);
+    parseSemanaticClasses(classFile);
 }
 
 // --------------------------------------------------------------------------
@@ -517,6 +550,18 @@ inline void TemplatedDatabase<TDescriptor, F>::setVocabulary
   clear();
 }
 
+template<class TDescriptor, class F>
+inline void TemplatedDatabase<TDescriptor, F>::parseSemanaticClasses(const std::string &classFile)
+{
+    std::ifstream f(classFile);
+    json data = json::parse(f);
+    json categories = data["categories"];
+    for ( auto &category: categories )
+    {
+        m_semantic_class_map[category["id"]] = category["is_anchor"];
+    }
+}
+
 // --------------------------------------------------------------------------
 
 template<class TDescriptor, class F>
@@ -664,16 +709,20 @@ void TemplatedDatabase<TDescriptor, F>::queryL1(const BowVector &vec,
 
   std::map<EntryId, double> pairs;
   std::map<EntryId, double>::iterator pit;
+  std::map<EntryId, std::pair<double, int>> semanticPairs;
+
+  double classMismatchPentaly = -2;
+  double classMatchMultiplier = 2;
+  double anchorMatchMultiplier = 5;
 
   int feature_idx = 0;
-  // TODO Nate: Need to read in a semantic class map from a FileStorage object
-  //    1) Map will indicate if the semantic feature is an anchor point or not
-  //    2) Scoring scheme for anchor class
-  //    3) Scoring scheme for non anchor class
   for(vit = vec.begin(); vit != vec.end(); ++vit)
   {
     const WordId word_id = vit->first;
     const WordValue& qvalue = vit->second;
+
+    int qSemanticClass = features[feature_idx++].second;
+    int qIsAnchor = m_semantic_class_map.at(qSemanticClass);
 
     const IFRow& row = m_ifile[word_id];
 
@@ -684,19 +733,36 @@ void TemplatedDatabase<TDescriptor, F>::queryL1(const BowVector &vec,
       const EntryId entry_id = rit->entry_id;
       const WordValue& dvalue = rit->word_weight;
 
+      int dbSemanticClass = rit->semanticClass;
+
       if((int)entry_id < max_id || max_id == -1)
       {
         double value = fabs(qvalue - dvalue) - fabs(qvalue) - fabs(dvalue);
+        pairs[entry_id] += value;
 
-        pit = pairs.lower_bound(entry_id);
-        if(pit != pairs.end() && !(pairs.key_comp()(entry_id, pit->first)))
+        // Check if it is a sematic class
+        if ( qSemanticClass > 0 || dbSemanticClass > 0 )
         {
-          pit->second += value;
-        }
-        else
-        {
-          pairs.insert(pit,
-            std::map<EntryId, double>::value_type(entry_id, value));
+            semanticPairs[entry_id].second++;
+
+            // Check if classes match
+            if ( qSemanticClass == dbSemanticClass )
+            {
+                // Check if it is an anchor
+                if(qIsAnchor)
+                {
+                    semanticPairs[entry_id].first += value * anchorMatchMultiplier;
+                }
+                else
+                {
+                    semanticPairs[entry_id].first += value * classMatchMultiplier;
+                }
+            }
+            // if the semantic classes do not match then penalize the score
+            else
+            {
+                semanticPairs[entry_id].first += value * classMismatchPentaly;
+            }
         }
       }
 
@@ -711,23 +777,25 @@ void TemplatedDatabase<TDescriptor, F>::queryL1(const BowVector &vec,
   }
 
   // resulting "scores" are now in [-2 best .. 0 worst]
-
-  // sort vector in ascending order of score
   std::sort(ret.begin(), ret.end());
-  // (ret is inverted now --the lower the better--)
 
   // cut vector
   if(max_results > 0 && (int)ret.size() > max_results)
     ret.resize(max_results);
 
-  // complete and scale score to [0 worst .. 1 best]
-  // ||v - w||_{L1} = 2 + Sum(|v_i - w_i| - |v_i| - |w_i|)
-  //		for all i | v_i != 0 and w_i != 0
-  // (Nister, 2006)
-  // scaled_||v - w||_{L1} = 1 - 0.5 * ||v - w||_{L1}
+  // Normalize feature score and semantic scores keep them separate for now
   QueryResults::iterator qit;
   for(qit = ret.begin(); qit != ret.end(); qit++)
+  {
     qit->Score = -qit->Score/2.0;
+    EntryId entry_id = qit->Id;
+    // Check if the entry_id exists in the semanticPairs map
+    if ( semanticPairs.count(entry_id) > 0 )
+    {
+        double final_score = semanticPairs[entry_id].first / semanticPairs[entry_id].second;
+        qit->SemanticScore = final_score;
+    }
+  }
 }
 
 // --------------------------------------------------------------------------

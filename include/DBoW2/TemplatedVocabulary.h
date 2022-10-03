@@ -1097,30 +1097,30 @@ void TemplatedVocabulary<TDescriptor,F>::transform(
       if(w > 0) v.addWeight(id, w);
     }
 
-    if(!v.empty() && !must)
-    {
-      // unnecessary when normalizing
-      const double nd = v.size();
-      for(BowVector::iterator vit = v.begin(); vit != v.end(); vit++)
-        vit->second /= nd;
-    }
+    //if(!v.empty() && !must)
+    //{
+    //  // unnecessary when normalizing
+    //  const double nd = v.size();
+    //  for(BowVector::iterator vit = v.begin(); vit != v.end(); vit++)
+    //    vit->second /= nd;
+    //}
 
   }
-  else // IDF || BINARY
-  {
-    for(fit = features.begin(); fit < features.end(); ++fit)
-    {
-      WordId id;
-      WordValue w;
-      // w is idf if IDF, or 1 if BINARY
+  //else // IDF || BINARY
+  //{
+  //  for(fit = features.begin(); fit < features.end(); ++fit)
+  //  {
+  //    WordId id;
+  //    WordValue w;
+  //    // w is idf if IDF, or 1 if BINARY
 
-      transform(*fit, id, w);
+  //    transform(*fit, id, w);
 
-      // not stopped
-      if(w > 0) v.addIfNotExist(id, w);
+  //    // not stopped
+  //    if(w > 0) v.addIfNotExist(id, w);
 
-    } // if add_features
-  } // if m_weighting == ...
+  //  } // if add_features
+  //} // if m_weighting == ...
 
   // TODO Nate: Need to pass the features and normalize with anchor and non anchor features
   if(must) v.normalize(norm);

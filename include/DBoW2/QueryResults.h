@@ -27,6 +27,7 @@ public:
   
   /// Score obtained
   double Score;
+  double SemanticScore;
   
   /// debug
   int nWords; // words in common
@@ -52,7 +53,7 @@ public:
    * @param _id entry id
    * @param _score score
    */
-  inline Result(EntryId _id, double _score): Id(_id), Score(_score){}
+  inline Result(EntryId _id, double _score, double _semanticScore = 0): Id(_id), Score(_score), SemanticScore(_semanticScore){}
 
   /**
    * Compares the scores of two results

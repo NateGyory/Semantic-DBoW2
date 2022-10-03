@@ -20,7 +20,7 @@ namespace DBoW2
 
 ostream & operator<<(ostream& os, const Result& ret )
 {
-  os << "<EntryId: " << ret.Id << ", Score: " << ret.Score << ">";
+  os << "<EntryId: " << ret.Id << ", Score: " << ret.Score << ", Semantic Score: " << ret.SemanticScore << ">";
   return os;
 }
 

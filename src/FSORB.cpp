@@ -25,7 +25,7 @@ namespace DBoW2 {
 void FSORB::meanValue(const std::vector<FSORB::pDescriptor> &descriptors,
   FSORB::TDescriptor &mean)
 {
-  cv::Mat &mean_ref = std::get<0>(mean);
+  cv::Mat &mean_ref = mean.first;
   if(descriptors.empty())
   {
     mean_ref.release();
@@ -33,7 +33,7 @@ void FSORB::meanValue(const std::vector<FSORB::pDescriptor> &descriptors,
   }
   else if(descriptors.size() == 1)
   {
-    mean_ref = std::get<0>(*descriptors[0]).clone();
+    mean_ref = (*descriptors[0]).first.clone();
   }
   else
   {
@@ -41,7 +41,7 @@ void FSORB::meanValue(const std::vector<FSORB::pDescriptor> &descriptors,
 
     for(size_t i = 0; i < descriptors.size(); ++i)
     {
-      const cv::Mat &d = std::get<0>(*descriptors[i]);
+      const cv::Mat &d = (*descriptors[i]).first;
       const unsigned char *p = d.ptr<unsigned char>();
 
       for(int j = 0; j < d.cols; ++j, ++p)
@@ -84,11 +84,11 @@ double FSORB::distance(const FSORB::TDescriptor &a,
   // This implementation assumes that a.cols (CV_8U) % sizeof(uint64_t) == 0
 
   const uint64_t *pa, *pb;
-  pa = std::get<0>(a).ptr<uint64_t>(); // a & b are actually CV_8U
-  pb = std::get<0>(b).ptr<uint64_t>();
+  pa = (a.first).ptr<uint64_t>(); // a & b are actually CV_8U
+  pb = (b.first).ptr<uint64_t>();
 
   uint64_t v, ret = 0;
-  for(size_t i = 0; i < std::get<0>(a).cols / sizeof(uint64_t); ++i, ++pa, ++pb)
+  for(size_t i = 0; i < (a.first).cols / sizeof(uint64_t); ++i, ++pa, ++pb)
   {
     v = *pa ^ *pb;
     v = v - ((v >> 1) & (uint64_t)~(uint64_t)0/3);
@@ -121,9 +121,9 @@ double FSORB::distance(const FSORB::TDescriptor &a,
 std::string FSORB::toString(const FSORB::TDescriptor &a)
 {
   stringstream ss;
-  const unsigned char *p = std::get<0>(a).ptr<unsigned char>();
+  const unsigned char *p = (a.first).ptr<unsigned char>();
 
-  for(int i = 0; i < std::get<0>(a).cols; ++i, ++p)
+  for(int i = 0; i < (a.first).cols; ++i, ++p)
   {
     ss << (int)*p << " ";
   }
@@ -135,8 +135,8 @@ std::string FSORB::toString(const FSORB::TDescriptor &a)
 
 void FSORB::fromString(FSORB::TDescriptor &a, const std::string &s)
 {
-  std::get<0>(a).create(1, FSORB::L, CV_8U);
-  unsigned char *p = std::get<0>(a).ptr<unsigned char>();
+  (a.first).create(1, FSORB::L, CV_8U);
+  unsigned char *p = (a.first).ptr<unsigned char>();
 
   stringstream ss(s);
   for(int i = 0; i < FSORB::L; ++i, ++p)
@@ -168,8 +168,8 @@ void FSORB::toMat32F(const std::vector<TDescriptor> &descriptors,
 
   for(size_t i = 0; i < N; ++i)
   {
-    const int C = std::get<0>(descriptors[i]).cols;
-    const unsigned char *desc = std::get<0>(descriptors[i]).ptr<unsigned char>();
+    const int C = (descriptors[i].first).cols;
+    const unsigned char *desc = (descriptors[i].first).ptr<unsigned char>();
 
     for(int j = 0; j < C; ++j, p += 8)
     {
@@ -203,7 +203,7 @@ void FSORB::toMat8U(const std::vector<TDescriptor> &descriptors,
 
   for(size_t i = 0; i < descriptors.size(); ++i, p += FSORB::L)
   {
-    const unsigned char *d = std::get<0>(descriptors[i]).ptr<unsigned char>();
+    const unsigned char *d = (descriptors[i].first).ptr<unsigned char>();
     std::copy(d, d + FSORB::L, p);
   }
 

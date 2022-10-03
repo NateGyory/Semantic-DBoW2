@@ -24,7 +24,7 @@ class FSORB: protected FClass
 public:
 
   /// Descriptor type
-  typedef std::tuple<cv::Mat, int, int> TDescriptor; // <32 bit orb desc, non anchor point semantic class, anchor point semantic class>
+  typedef std::pair<cv::Mat, int> TDescriptor; // <32 bit orb desc, non anchor point semantic class, anchor point semantic class>
   /// Pointer to a single descriptor
   typedef const TDescriptor *pDescriptor;
   /// Descriptor length (in bytes)

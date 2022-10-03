@@ -32,6 +32,7 @@ set(DEPENDENCY_DIR ${CMAKE_CURRENT_BINARY_DIR}/dependencies)
 set(DEPENDENCY_INSTALL_DIR ${DEPENDENCY_DIR}/install)
 
 find_package(OpenCV REQUIRED)
+find_package(nlohmann_json 3.11.2 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
 
 if(BUILD_DBoW2)
@@ -41,7 +42,7 @@ if(BUILD_DBoW2)
   endif(WIN32)
   add_library(${PROJECT_NAME} ${LIB_SHARED} ${SRCS})
   target_include_directories(${PROJECT_NAME} PUBLIC include/DBoW2/ include/)
-  target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+  target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS} nlohmann_json::nlohmann_json)
   set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD 11)
 endif(BUILD_DBoW2)
 
