@@ -722,7 +722,8 @@ void TemplatedDatabase<TDescriptor, F>::queryL1(const BowVector &vec,
     const WordValue& qvalue = vit->second;
 
     int qSemanticClass = features[feature_idx++].second;
-    int qIsAnchor = m_semantic_class_map.at(qSemanticClass);
+    bool qIsAnchor = m_semantic_class_map.count(qSemanticClass) > 0 ?
+        m_semantic_class_map.at(qSemanticClass) : false;
 
     const IFRow& row = m_ifile[word_id];
 
