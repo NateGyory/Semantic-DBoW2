@@ -493,7 +493,7 @@ EntryId TemplatedDatabase<TDescriptor, F>::add(const BowVector &v,
     const WordId& word_id = vit->first;
     const WordValue& word_weight = vit->second;
 
-    int semanticClass = F::isSemantic() ? std::get<1>(features[feature_idx++]) : -1;
+    int semanticClass = F::isSemantic() ? features[feature_idx++].second : -1;
 
     IFRow& ifrow = m_ifile[word_id];
     ifrow.emplace_back(entry_id, word_weight, semanticClass);

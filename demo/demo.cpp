@@ -30,7 +30,7 @@ void testDatabase(const vector<vector<std::pair<cv::Mat, int>>> &features, Seman
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 // number of training images
-const int NIMAGES = 4;
+const int NIMAGES = 6;
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -131,10 +131,6 @@ void testDatabase(const std::vector<std::vector<std::pair<cv::Mat, int>>> &featu
 
   std::string classFile = "/home/nate/Development/Semantic-DBoW2/demo/config/labels_test.json";
   SemanticOrbDatabase db(voc, classFile, false, 0); // false = do not use direct index
-  // (so ignore the last param)
-  // The direct index is useful if we want to retrieve the features that
-  // belong to some vocabulary node.
-  // db creates a copy of the vocabulary, we may get rid of "voc" now
 
   // TODO Nate: add semantic ORB features to the database
   for(int i = 0; i < NIMAGES; i++)
@@ -152,7 +148,7 @@ void testDatabase(const std::vector<std::vector<std::pair<cv::Mat, int>>> &featu
   QueryResults ret;
   for(int i = 0; i < NIMAGES; i++)
   {
-    db.query(features[i], ret, 4);
+    db.query(features[i], ret, 6);
 
     // ret[0] is always the same image in this case, because we added it to the
     // database. ret[1] is the second best match.
